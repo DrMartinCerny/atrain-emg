@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List, Tuple
 
 import numpy as np
 
@@ -89,3 +89,23 @@ class EMGRecording:
             f"n_samples={self.n_samples()}, fs={self.fs:.6g}, "
             f"duration_s={self.duration_s():.3f}, start_timestamp={st}, units={self.units!r})"
         )
+
+    atrains: Dict[str, List[Tuple[int, int]]] = field(default_factory=dict)
+    # each tuple = (start_idx, end_idx) end is exclusive
+
+
+    def set_atrains(self, atrains: Dict[str, List[Tuple[int, int]]]) -> None:
+        self.atrains = atrains
+
+
+    def atrain_mask(self, channel: str, n: Optional[int] = None) -> np.ndarray:
+        """Create a boolean mask on demand from episode list."""
+        if n is None:
+            n = self.n_samples()
+        m = np.zeros(n, dtype=bool)
+        for (a, b) in self.atrains.get(channel, []):
+            a = max(0, int(a))
+            b = min(int(b), n)
+            if b > a:
+                m[a:b] = True
+        return m
